@@ -1,68 +1,100 @@
-<h1>hello word!</h1>
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minha Primeira Página</title>
+<meta charset="UTF-8">
+<title>Comemoração Barcelona</title>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            text-align: center;
-            margin: 0;
-            padding: 0;
-        }
+<style>
+body{
+    font-family: Arial, sans-serif;
+    text-align:center;
+    background:#0a1f44;
+    color:white;
+    margin:0;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+}
 
-        header {
-            background-color: #4CAF50;
-            color: white;
-            padding: 20px;
-        }
+button{
+    padding:15px 30px;
+    font-size:20px;
+    border:none;
+    border-radius:10px;
+    background:#a50044;
+    color:white;
+    cursor:pointer;
+    transition:0.3s;
+}
 
-        main {
-            padding: 20px;
-        }
+button:hover{
+    background:#edbb00;
+    color:#000;
+}
 
-        button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 12px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 8px;
-        }
+#celebracao{
+    display:none;
+    margin-top:30px;
+    font-size:40px;
+    animation:aparecer 1s ease;
+}
 
-        button:hover {
-            background-color: #45a049;
-        }
+@keyframes aparecer{
+    from{transform:scale(0);opacity:0;}
+    to{transform:scale(1);opacity:1;}
+}
 
-        img {
-            width: 300px;
-            border-radius: 10px;
-        }
-    </style>
+.confete{
+    position:fixed;
+    width:10px;
+    height:10px;
+    background:red;
+    top:-10px;
+    animation:cair 3s linear forwards;
+}
+
+@keyframes cair{
+    to{
+        transform:translateY(100vh) rotate(720deg);
+    }
+}
+</style>
 </head>
 
 <body>
 
-<header>
-    <h1>Bem-vindo ao meu site</h1>
-</header>
+<h1>Torcedor?</h1>
+<button onclick="comemorar()">Clique aqui</button>
 
-<main>
-    <p>Esta é uma página HTML simples criada como exemplo.</p>
+<div id="celebracao">
+🎉 VISCA BARÇA! 🔵🔴
+</div>
 
-    <img src="https://picsum.photos/300" alt="Imagem de exemplo">
+<script>
+function comemorar(){
+    document.getElementById("celebracao").style.display="block";
 
-    <br><br>
+    for(let i=0;i<80;i++){
+        let confete=document.createElement("div");
+        confete.classList.add("confete");
 
-    <button onclick="alert('Você clicou no botão!')">
-        Clique aqui
-    </button>
-</main>
+        confete.style.left=Math.random()*100+"vw";
+        confete.style.background=[
+            "#a50044",
+            "#004d98",
+            "#edbb00"
+        ][Math.floor(Math.random()*3)];
+
+        confete.style.animationDuration=(Math.random()*2+2)+"s";
+
+        document.body.appendChild(confete);
+
+        setTimeout(()=>{confete.remove()},3000);
+    }
+}
+</script>
 
 </body>
 </html>
