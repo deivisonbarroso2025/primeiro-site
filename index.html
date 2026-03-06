@@ -1,212 +1,129 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt">
 <head>
 <meta charset="UTF-8">
-<title>Quiz de Futebol</title>
-
+<title>Jogo de Tiro 3D</title>
 <style>
-body{
-    font-family: Arial, sans-serif;
-    background: #0a5c2b;
-    color: white;
-    text-align: center;
-    padding: 30px;
+body { margin:0; overflow:hidden; background:black; }
+#crosshair{
+position:fixed;
+top:50%;
+left:50%;
+width:10px;
+height:10px;
+margin-left:-5px;
+margin-top:-5px;
+border:2px solid white;
+border-radius:50%;
 }
-
-#quiz-container{
-    max-width: 600px;
-    margin: auto;
-    background: #063b1c;
-    padding: 25px;
-    border-radius: 10px;
-}
-
-button{
-    padding: 10px 20px;
-    font-size: 16px;
-    margin-top: 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.option{
-    display: block;
-    margin: 8px 0;
-    padding: 10px;
-    background: #0f7d3c;
-}
-
-#nextBtn{
-    background: orange;
-}
-
-#startBtn{
-    background: limegreen;
-}
-
 </style>
 </head>
-
 <body>
 
-<div id="quiz-container">
+<div id="crosshair"></div>
 
-<h1>⚽ Quiz de Futebol</h1>
-
-<div id="start-screen">
-<p>Teste seus conhecimentos sobre futebol!</p>
-<button id="startBtn">Iniciar Quiz</button>
-</div>
-
-<div id="quiz-screen" style="display:none;">
-<h2 id="question"></h2>
-<div id="options"></div>
-<button id="nextBtn">Próxima</button>
-</div>
-
-<div id="result-screen" style="display:none;">
-<h2>Resultado Final</h2>
-<p id="score"></p>
-<button onclick="location.reload()">Jogar Novamente</button>
-</div>
-
-</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
 <script>
 
-const perguntas = [
+let scene = new THREE.Scene();
+scene.background = new THREE.Color(0x202020);
 
-{
-pergunta: "Quem ganhou a Copa do Mundo de 2002?",
-opcoes: ["Brasil","Alemanha","Argentina","França"],
-resposta: 0
-},
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight,0.1,1000);
 
-{
-pergunta: "Qual jogador é conhecido como 'Rei do Futebol'?",
-opcoes: ["Maradona","Pelé","Messi","Cristiano Ronaldo"],
-resposta: 1
-},
+let renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth,window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-{
-pergunta: "Qual país sediou a Copa do Mundo de 2014?",
-opcoes: ["Rússia","África do Sul","Brasil","Alemanha"],
-resposta: 2
-},
+// luz
+let light = new THREE.DirectionalLight(0xffffff,1);
+light.position.set(5,10,7);
+scene.add(light);
 
-{
-pergunta: "Quantos jogadores cada time tem em campo?",
-opcoes: ["9","10","11","12"],
-resposta: 2
-},
+// chão
+let floorGeo = new THREE.PlaneGeometry(200,200);
+let floorMat = new THREE.MeshStandardMaterial({color:0x555555});
+let floor = new THREE.Mesh(floorGeo,floorMat);
+floor.rotation.x = -Math.PI/2;
+scene.add(floor);
 
-{
-pergunta: "Qual clube tem mais Champions League?",
-opcoes: ["Barcelona","Real Madrid","Milan","Liverpool"],
-resposta: 1
-},
+// jogador
+camera.position.set(0,2,5);
 
-{
-pergunta: "Quem ganhou a Copa do Mundo de 2018?",
-opcoes: ["Alemanha","França","Brasil","Croácia"],
-resposta: 1
-},
+// inimigos
+let enemies = [];
 
-{
-pergunta: "Qual jogador tem mais Bolas de Ouro (até 2023)?",
-opcoes: ["Cristiano Ronaldo","Messi","Neymar","Ronaldinho"],
-resposta: 1
-},
+function spawnEnemy(){
+let geo = new THREE.BoxGeometry(1,1,1);
+let mat = new THREE.MeshStandardMaterial({color:0xff0000});
+let cube = new THREE.Mesh(geo,mat);
 
-{
-pergunta: "Qual país ganhou a primeira Copa do Mundo?",
-opcoes: ["Brasil","Uruguai","Argentina","Itália"],
-resposta: 1
-},
+cube.position.set(
+(Math.random()-0.5)*40,
+0.5,
+(Math.random()-0.5)*40
+);
 
-{
-pergunta: "Qual clube revelou Neymar?",
-opcoes: ["Flamengo","Santos","Palmeiras","São Paulo"],
-resposta: 1
-},
-
-{
-pergunta: "Qual seleção tem mais Copas do Mundo?",
-opcoes: ["Alemanha","Itália","Brasil","Argentina"],
-resposta: 2
+scene.add(cube);
+enemies.push(cube);
 }
 
-];
+for(let i=0;i<10;i++) spawnEnemy();
 
-let indice = 0;
-let pontuacao = 0;
+// tiro
+let raycaster = new THREE.Raycaster();
+let mouse = new THREE.Vector2();
 
-const startBtn = document.getElementById("startBtn");
-const quizScreen = document.getElementById("quiz-screen");
-const startScreen = document.getElementById("start-screen");
-const resultScreen = document.getElementById("result-screen");
-const questionEl = document.getElementById("question");
-const optionsEl = document.getElementById("options");
-const nextBtn = document.getElementById("nextBtn");
+window.addEventListener("click",()=>{
 
-startBtn.onclick = () => {
-startScreen.style.display = "none";
-quizScreen.style.display = "block";
-mostrarPergunta();
-};
+raycaster.setFromCamera(mouse,camera);
 
-function mostrarPergunta(){
+let hits = raycaster.intersectObjects(enemies);
 
-let q = perguntas[indice];
-questionEl.textContent = (indice+1)+". "+q.pergunta;
-optionsEl.innerHTML = "";
+if(hits.length>0){
+scene.remove(hits[0].object);
+enemies.splice(enemies.indexOf(hits[0].object),1);
+spawnEnemy();
+}
 
-q.opcoes.forEach((opcao,i)=>{
-let btn = document.createElement("button");
-btn.textContent = opcao;
-btn.classList.add("option");
-btn.onclick = ()=>selecionarResposta(i);
-optionsEl.appendChild(btn);
 });
 
+// movimento
+let keys={};
+
+document.addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
+document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+
+function movePlayer(){
+
+let speed=0.2;
+
+if(keys["w"]) camera.position.z -= speed;
+if(keys["s"]) camera.position.z += speed;
+if(keys["a"]) camera.position.x -= speed;
+if(keys["d"]) camera.position.x += speed;
+
 }
 
-function selecionarResposta(i){
+// mouse olhar
+document.body.addEventListener("mousemove",e=>{
 
-if(i === perguntas[indice].resposta){
-pontuacao++;
-}
+camera.rotation.y -= e.movementX*0.002;
+camera.rotation.x -= e.movementY*0.002;
 
-Array.from(optionsEl.children).forEach(btn=>{
-btn.disabled = true;
 });
 
+// loop
+function animate(){
+requestAnimationFrame(animate);
+
+movePlayer();
+
+renderer.render(scene,camera);
 }
 
-nextBtn.onclick = ()=>{
-
-indice++;
-
-if(indice < perguntas.length){
-mostrarPergunta();
-}else{
-mostrarResultado();
-}
-
-};
-
-function mostrarResultado(){
-
-quizScreen.style.display = "none";
-resultScreen.style.display = "block";
-
-document.getElementById("score").textContent =
-"Você acertou "+pontuacao+" de "+perguntas.length+" perguntas!";
-
-}
+animate();
 
 </script>
-
 </body>
 </html>
