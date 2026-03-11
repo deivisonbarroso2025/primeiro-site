@@ -1,129 +1,244 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Jogo de Tiro 3D</title>
+<title>Spider-Runner</title>
+
 <style>
-body { margin:0; overflow:hidden; background:black; }
-#crosshair{
-position:fixed;
-top:50%;
-left:50%;
-width:10px;
-height:10px;
-margin-left:-5px;
-margin-top:-5px;
-border:2px solid white;
-border-radius:50%;
+body{
+    margin:0;
+    font-family:Arial;
+    background:linear-gradient(#ff9966,#663399);
+    overflow:hidden;
+}
+
+#game{
+    width:800px;
+    height:400px;
+    margin:auto;
+    position:relative;
+    background:linear-gradient(#ff9966,#222);
+    border:3px solid black;
+}
+
+#ground{
+    position:absolute;
+    bottom:0;
+    width:100%;
+    height:80px;
+    background:#333;
+}
+
+#player{
+    position:absolute;
+    bottom:80px;
+    left:120px;
+    width:40px;
+    height:60px;
+    background:red;
+    border-radius:8px;
+}
+
+.coin{
+    position:absolute;
+    width:20px;
+    height:20px;
+    background:gold;
+    border-radius:50%;
+}
+
+.obstacle{
+    position:absolute;
+    bottom:80px;
+    width:50px;
+    height:40px;
+}
+
+.car{ background:#2196f3; }
+.trash{ background:#4caf50; width:35px; }
+
+#ui{
+    position:absolute;
+    top:5px;
+    left:10px;
+    color:white;
+}
+
+#shop{
+    position:absolute;
+    top:50px;
+    left:10px;
+    color:white;
+}
+button{
+    padding:5px;
 }
 </style>
 </head>
+
 <body>
 
-<div id="crosshair"></div>
+<h2 style="text-align:center;color:white">Spider-Runner</h2>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<div id="game">
+
+<div id="ui">
+Pontuação: <span id="score">0</span> |
+Moedas: <span id="coins">0</span> |
+Recorde: <span id="record">0</span>
+</div>
+
+<div id="shop">
+<button id="buyGwen">Comprar Gwen (2000 moedas)</button>
+</div>
+
+<div id="player"></div>
+<div id="ground"></div>
+
+</div>
 
 <script>
 
-let scene = new THREE.Scene();
-scene.background = new THREE.Color(0x202020);
+let player = document.getElementById("player")
+let game = document.getElementById("game")
 
-let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight,0.1,1000);
+let score = 0
+let coins = 0
+let record = localStorage.getItem("record") || 0
+document.getElementById("record").innerText = record
 
-let renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth,window.innerHeight);
-document.body.appendChild(renderer.domElement);
+let posY = 0
+let jumping = false
+let speed = 5
+let character = "miles"
 
-// luz
-let light = new THREE.DirectionalLight(0xffffff,1);
-light.position.set(5,10,7);
-scene.add(light);
+function jump(){
+if(!jumping){
+jumping = true
+let up = setInterval(()=>{
+posY +=5
+player.style.bottom = (80+posY)+"px"
+if(posY>=120) clearInterval(up)
+},20)
 
-// chão
-let floorGeo = new THREE.PlaneGeometry(200,200);
-let floorMat = new THREE.MeshStandardMaterial({color:0x555555});
-let floor = new THREE.Mesh(floorGeo,floorMat);
-floor.rotation.x = -Math.PI/2;
-scene.add(floor);
-
-// jogador
-camera.position.set(0,2,5);
-
-// inimigos
-let enemies = [];
-
-function spawnEnemy(){
-let geo = new THREE.BoxGeometry(1,1,1);
-let mat = new THREE.MeshStandardMaterial({color:0xff0000});
-let cube = new THREE.Mesh(geo,mat);
-
-cube.position.set(
-(Math.random()-0.5)*40,
-0.5,
-(Math.random()-0.5)*40
-);
-
-scene.add(cube);
-enemies.push(cube);
+let down = setInterval(()=>{
+posY -=5
+player.style.bottom = (80+posY)+"px"
+if(posY<=0){
+posY=0
+jumping=false
+clearInterval(down)
+}
+},20)
+}
 }
 
-for(let i=0;i<10;i++) spawnEnemy();
+document.addEventListener("keydown",e=>{
+if(e.key=="ArrowUp") jump()
+})
 
-// tiro
-let raycaster = new THREE.Raycaster();
-let mouse = new THREE.Vector2();
+function spawnObstacle(){
 
-window.addEventListener("click",()=>{
+let obs = document.createElement("div")
+obs.classList.add("obstacle")
 
-raycaster.setFromCamera(mouse,camera);
-
-let hits = raycaster.intersectObjects(enemies);
-
-if(hits.length>0){
-scene.remove(hits[0].object);
-enemies.splice(enemies.indexOf(hits[0].object),1);
-spawnEnemy();
+if(Math.random()<0.5){
+obs.classList.add("car")
+}else{
+obs.classList.add("trash")
 }
 
-});
+obs.style.left="800px"
+game.appendChild(obs)
 
-// movimento
-let keys={};
+let move=setInterval(()=>{
 
-document.addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
-document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+let x=parseInt(obs.style.left)
+obs.style.left=(x-speed)+"px"
 
-function movePlayer(){
+if(x<160 && x>110 && posY<40){
+gameOver()
+}
 
-let speed=0.2;
+if(x<-50){
+obs.remove()
+clearInterval(move)
+}
 
-if(keys["w"]) camera.position.z -= speed;
-if(keys["s"]) camera.position.z += speed;
-if(keys["a"]) camera.position.x -= speed;
-if(keys["d"]) camera.position.x += speed;
+},20)
 
 }
 
-// mouse olhar
-document.body.addEventListener("mousemove",e=>{
+function spawnCoin(){
 
-camera.rotation.y -= e.movementX*0.002;
-camera.rotation.x -= e.movementY*0.002;
+let coin=document.createElement("div")
+coin.classList.add("coin")
+coin.style.left="800px"
+coin.style.bottom=(100+Math.random()*80)+"px"
+game.appendChild(coin)
 
-});
+let move=setInterval(()=>{
 
-// loop
-function animate(){
-requestAnimationFrame(animate);
+let x=parseInt(coin.style.left)
+coin.style.left=(x-speed)+"px"
 
-movePlayer();
+let coinY=parseInt(coin.style.bottom)
 
-renderer.render(scene,camera);
+if(x<160 && x>110 && Math.abs(coinY-(80+posY))<40){
+coins++
+document.getElementById("coins").innerText=coins
+coin.remove()
+clearInterval(move)
 }
 
-animate();
+if(x<-20){
+coin.remove()
+clearInterval(move)
+}
+
+},20)
+
+}
+
+function gameLoop(){
+
+score++
+document.getElementById("score").innerText=score
+
+if(score%120==0) spawnObstacle()
+if(score%200==0) spawnCoin()
+
+}
+
+function gameOver(){
+
+if(score>record){
+record=score
+localStorage.setItem("record",record)
+}
+
+alert("Game Over!")
+
+location.reload()
+
+}
+
+setInterval(gameLoop,50)
+
+document.getElementById("buyGwen").onclick=function(){
+
+if(coins>=2000){
+coins-=2000
+character="gwen"
+player.style.background="white"
+alert("Gwen desbloqueada!")
+}else{
+alert("Você precisa de 2000 moedas!")
+}
+
+}
 
 </script>
+
 </body>
 </html>
